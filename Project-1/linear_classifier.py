@@ -266,7 +266,12 @@ def svm_loss_vectorized(
     #############################################################################
     
     # Replace "pass" statement with your code
-    pass
+    binary_mask = (margin > 0).to(W.dtype)
+    num_miss_classifications = binary_mask.sum(dim=1)
+    binary_mask[torch.arange(num_train), y] = -num_miss_classifications
+    dW = X.t().mm(binary_mask)
+    dW /= num_train
+    dW += 2 * reg * W
 
     #############################################################################
     #                             END OF YOUR CODE                              #
@@ -292,7 +297,9 @@ def sample_batch(
     # Hint: Use torch.randint to generate indices.                          #
     #########################################################################
     # Replace "pass" statement with your code
-    pass
+    indices = torch.randint(0, num_train, (batch_size,))
+    X_batch = X[indices]
+    y_batch = y[indices]
     #########################################################################
     #                       END OF YOUR CODE                                #
     #########################################################################
