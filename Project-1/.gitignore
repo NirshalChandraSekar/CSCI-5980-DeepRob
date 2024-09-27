@@ -1,3 +1,4 @@
-deeprob/__pycache__
-Progress-Objects-Sample
+deeprob/__pycache__/*
+Progress-Objects-Sample/*
 Progress-Objects-Sample.tar.gz
+__pycache__/*

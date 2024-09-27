@@ -153,7 +153,13 @@ def svm_loss_naive(
     num_train = X.shape[0]
     loss = 0.0
     for i in range(num_train):
-        scores = W.t().mv(X[i])
+        ''' --> the below line does a matrix vector multiplacation
+            --> the weight matrix dimension will be (C*D) since it is transposed,
+                and the input image dimension will be (D)
+            --> after the matrix multiplication we will get a vector of dimension (C)
+            --> this gives the scores of each classes for that particular image.'''
+        scores = W.t().mv(X[i]) 
+
         correct_class_score = scores[y[i]]
         for j in range(num_classes):
             if j == y[i]:
@@ -168,8 +174,11 @@ def svm_loss_naive(
                 # computing the derivative, it is simple to compute the derivative    #
                 # at the same time that the loss is being computed.                   #
                 #######################################################################
+                
                 # Replace "pass" statement with your code
-                pass
+                dW[:, j] += X[i]
+                dW[:, y[i]] -= X[i]
+
                 #######################################################################
                 #                       END OF YOUR CODE                              #
                 #######################################################################
@@ -181,13 +190,15 @@ def svm_loss_naive(
     # Add regularization to the loss.
     loss += reg * torch.sum(W * W)
 
+    dW /= num_train
+
     #############################################################################
     # TODO:                                                                     #
     # Compute the gradient of the loss function w.r.t. the regularization term  #
     # and add it to dW. (part 2)                                                #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    dW += 2 * reg * W
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -215,6 +226,7 @@ def svm_loss_vectorized(
     - gradient of loss with respect to weights W; a tensor of same shape as W
     """
     loss = 0.0
+    
     dW = torch.zeros_like(W)  # initialize the gradient as zero
 
     num_classes = W.shape[1]
@@ -225,8 +237,20 @@ def svm_loss_vectorized(
     # Implement a vectorized version of the structured SVM loss, storing the    #
     # result in loss.                                                           #
     #############################################################################
-    # Replace "pass" statement with your code
-    pass
+    
+    # Calculate the scores matrix
+    scores = X.mm(W)  
+    # Find the scores of the correct class based on the values in y
+    correct_class_scores = scores[torch.arange(num_train), y].view(-1,1)
+    # calculate the margin, clamp the min valaue to 0
+    margin = torch.clamp(scores - correct_class_scores + 1, min=0)
+    # make the values that corresponding to the true label as 0
+    margin[torch.arange(num_train),y] = 0
+    # average the loss
+    loss = margin.sum() / num_train
+    # add the regularization term
+    loss += reg*torch.sum(W*W)     
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -240,8 +264,10 @@ def svm_loss_vectorized(
     # to reuse some of the intermediate values that you used to compute the     #
     # loss.                                                                     #
     #############################################################################
+    
     # Replace "pass" statement with your code
     pass
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
