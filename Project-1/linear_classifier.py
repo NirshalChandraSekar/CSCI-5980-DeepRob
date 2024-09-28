@@ -8,7 +8,6 @@ import statistics
 from abc import abstractmethod
 from typing import Dict, List, Callable, Optional
 
-
 def hello_linear_classifier():
     """
     This is a sample function that we will try to import and run to ensure that
@@ -366,8 +365,10 @@ def train_linear_classifier(
         # TODO:                                                                 #
         # Update the weights using the gradient and the learning rate.          #
         #########################################################################
+        
         # Replace "pass" statement with your code
-        pass
+        W -= learning_rate * grad
+
         #########################################################################
         #                       END OF YOUR CODE                                #
         #########################################################################
@@ -397,8 +398,10 @@ def predict_linear_classifier(W: torch.Tensor, X: torch.Tensor):
     # TODO:                                                                   #
     # Implement this method. Store the predicted labels in y_pred.            #
     ###########################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    _, y_pred = torch.max(X.mm(W), dim=1)
+
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -423,8 +426,11 @@ def svm_get_search_params():
     ###########################################################################
     # TODO:   add your own hyper parameter lists.                             #
     ###########################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    learning_rates = [0.00005e-1 , 5e-3, 1e-2, 5e-2, 1e-1]
+    regularization_strengths = [0.00005e1, 1e3, 1e4, 1e5, 1e6]
+
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -476,7 +482,15 @@ def test_one_param_set(
     # num_iters = 100
 
     # Replace "pass" statement with your code
-    pass
+    loss_history = cls.train(data_dict['X_train'], data_dict['y_train'], 
+                                          lr, reg, num_iters, )
+    
+    y_train_pred = cls.predict(data_dict["X_train"])
+    y_val_pred = cls.predict(data_dict["X_val"])
+    
+    train_acc = (y_train_pred == data_dict["y_train"]).float().mean().item()
+    val_acc = (y_val_pred == data_dict["y_val"]).float().mean().item()
+
     ############################################################################
     #                            END OF YOUR CODE                              #
     ############################################################################
@@ -522,12 +536,37 @@ def softmax_loss_naive(
     # in http://cs231n.github.io/linear-classify/). Plus, don't forget the      #
     # regularization!                                                           #
     #############################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    for i in range(X.shape[0]):
+        score = W.t().mv(X[i])
+        score -= torch.max(score)
+
+        # Compute softmax probabilities (e^score / sum(e^score))
+        exp_scores = torch.exp(score)
+
+        sum_exp_scores = torch.sum(exp_scores)
+        softmax_probs = exp_scores / sum_exp_scores
+
+        # Compute the negative log-likelihood for the correct class
+        correct_class_prob = softmax_probs[y[i]]
+        loss -= torch.log(correct_class_prob)
+
+        for j in range(W.shape[1]):  # For each class
+        # Calculate gradient for each class
+            softmax_prob = softmax_probs[j]
+            if j == y[i]:
+                dW[:, j] += (softmax_prob - 1) * X[i]
+            else:
+                dW[:, j] += softmax_prob * X[i]
+
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
-
+    loss /= X.shape[0]
+    loss += reg * torch.sum(W*W)
+    dW /= X.shape[0]
+    dW += 2 * reg * W
     return loss, dW
 
 
@@ -552,8 +591,26 @@ def softmax_loss_vectorized(
     # in http://cs231n.github.io/linear-classify/). Don't forget the            #
     # regularization!                                                           #
     #############################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    scores = X.mm(W) #shape (N,C)
+    scores -= torch.max(scores, dim=1, keepdim=True).values  # Shape (N, C)
+    
+    exp_scores = torch.exp(scores) #shape (N,C)
+    sum_exp_scores = torch.sum(exp_scores, dim=1,keepdim=True) #shape (N,1)
+    softmax_probs = exp_scores / sum_exp_scores
+
+    correct_class_prob = -torch.log(softmax_probs[torch.arange(X.shape[0]), y])
+    loss = torch.sum(correct_class_prob) / X.shape[0]
+    loss += reg*torch.sum(W*W)
+
+    softmax_probs[torch.arange(X.shape[0]), y] -= 1  # Subtract 1 from correct class probs
+    dW = X.t().mm(softmax_probs) / X.shape[0]  # Shape (D, C)
+
+    # Add regularization to the gradient
+    dW += 2 * reg * W
+
+
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
@@ -582,7 +639,8 @@ def softmax_get_search_params():
     # classifier.                                                             #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    learning_rates = [0.00005e-1 , 5e-3, 1e-2, 5e-2, 1e-1]
+    regularization_strengths = [0.00005e1, 1e3, 1e4, 1e5, 1e6]
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
