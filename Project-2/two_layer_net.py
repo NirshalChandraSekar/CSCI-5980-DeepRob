@@ -146,8 +146,14 @@ def nn_forward_pass(params: Dict[str, torch.Tensor], X: torch.Tensor):
     # Store the result in the scores variable, which should be an tensor of    #
     # shape (N, C).                                                            #
     ############################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    hidden = X.mm(W1) + b1 # linear layer before activation
+    hidden = hidden.clamp(min=0) # activated layer
+
+    scores = hidden.mm(W2) + b2
+    
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -211,8 +217,19 @@ def nn_forward_backward(
     # If you are not careful here, it is easy to run into numeric instability  #
     # (Check Numeric Stability in http://cs231n.github.io/linear-classify/).   #
     ############################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    # computing the softmax loss
+    scores -= torch.max(scores, dim=1, keepdim=True).values
+    exp_scores = torch.exp(scores)
+    sum_exp_scores = torch.sum(exp_scores, dim=1,keepdim=True) #shape (N,1)
+    softmax_probs = exp_scores / sum_exp_scores
+    correct_class_prob = -torch.log(softmax_probs[torch.arange(X.shape[0]), y])
+    loss = torch.sum(correct_class_prob) / X.shape[0]
+
+    # Adding the regularization losses
+    loss += reg * (torch.sum(W1*W1) + torch.sum(W2*W2))
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -225,8 +242,10 @@ def nn_forward_backward(
     # For example, grads['W1'] should store the gradient on W1, and be a      #
     # tensor of same size                                                     #
     ###########################################################################
+    
     # Replace "pass" statement with your code
     pass
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
