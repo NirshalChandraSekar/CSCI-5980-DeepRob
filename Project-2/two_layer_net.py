@@ -244,7 +244,15 @@ def nn_forward_backward(
     ###########################################################################
     
     # Replace "pass" statement with your code
-    pass
+    softmax_probs[torch.arange(X.shape[0]), y] -= 1
+    grads['W2'] = (h1.t().mm(softmax_probs) / N) + 2 * reg * W2
+    grads['b2'] = torch.sum(softmax_probs, dim=0) / N
+
+    dh1 = torch.mm(softmax_probs, W2.t())
+    dh1[h1 <= 0] = 0
+
+    grads['W1'] = (torch.mm(X.t(), dh1) / N) + 2 * reg * W1 
+    grads['b1'] = torch.sum(dh1, dim=0) / N
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -325,8 +333,13 @@ def nn_train(
         # using stochastic gradient descent. You'll need to use the gradients   #
         # stored in the grads dictionary defined above.                         #
         #########################################################################
+        
         # Replace "pass" statement with your code
-        pass
+        params['W1'] -= learning_rate * grads['W1']
+        params['b1'] -= learning_rate * grads['b1']
+        params['W2'] -= learning_rate * grads['W2']
+        params['b2'] -= learning_rate * grads['b2']
+
         #########################################################################
         #                             END OF YOUR CODE                          #
         #########################################################################
@@ -383,8 +396,12 @@ def nn_predict(
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    scores, _ = nn_forward_pass(params, X)
+    _, y_pred = torch.max(scores, dim=1)
+
+
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
@@ -417,8 +434,13 @@ def nn_get_search_params():
     # different hyperparameters to achieve good performance with the softmax  #
     # classifier.                                                             #
     ###########################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    learning_rates = [1]
+    hidden_sizes = [250]
+    regularization_strengths = [1e-3]
+    learning_rate_decays = [0.95]
+
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -478,8 +500,28 @@ def find_best_net(
     # to write code to sweep through possible combinations of hyperparameters   #
     # automatically like we did on the previous exercises.                      #
     #############################################################################
+    
     # Replace "pass" statement with your code
-    pass
+    X_train = data_dict['X_train']
+    y_train = data_dict['y_train']
+    X_val = data_dict['X_val']
+    y_val = data_dict['y_val']
+
+
+    learning_rates, hidden_sizes, regularization_strengths, learning_rate_decays = get_param_set_fn()
+
+    for lr in learning_rates:
+        for hs in hidden_sizes:
+            for reg in regularization_strengths:
+                for lrd in learning_rate_decays:
+                    model = TwoLayerNet(3 * 32 * 32, hs, 10, device=data_dict['X_train'].device, dtype=data_dict['X_train'].dtype)
+                    stats = model.train(X_train, y_train, X_val, y_val, learning_rate=lr, learning_rate_decay=lrd, reg=reg, num_iters=3000, batch_size=1000)
+                    y_val_pred = model.predict(X_val)
+                    val_acc = (y_val_pred == y_val).float().mean().item()
+                    if val_acc > best_val_acc:
+                        best_val_acc = val_acc
+                        best_net = model
+                        best_stat = stats
     #############################################################################
     #                               END OF YOUR CODE                            #
     #############################################################################
